@@ -35,6 +35,37 @@ app.get('/reminders', (c) => {
 });
 
 
+
+
+app.get('/reminders/completed', (c) => {
+  console.log('Fetching completed reminders'); 
+  const completed = reminders.filter((r) => r.isCompleted);
+  console.log('Completed reminders:', completed);
+  return completed.length ? c.json(completed) : c.json({ error: 'No completed reminders' }, 404);
+});
+
+
+app.get('/reminders/not-completed', (c) => {
+  console.log('Fetching not completed reminders'); 
+  const notCompleted = reminders.filter((r) => !r.isCompleted);
+  console.log('Not completed reminders:', notCompleted); 
+  return notCompleted.length ? c.json(notCompleted) : c.json({ error: 'No uncompleted reminders' }, 404);
+});
+
+
+app.get('/reminders/due-today', (c) => {
+  console.log('Fetching reminders due today'); 
+  const today = new Date().toISOString().split('T')[0];
+  console.log('Today:', today); 
+  const dueToday = reminders.filter((r) => r.dueDate.split('T')[0] === today);
+  console.log('Reminders due today:', dueToday); 
+  return dueToday.length ? c.json(dueToday) : c.json({ error: 'No reminders due today' }, 404);
+});
+
+
+
+
+
 app.get('/reminders/:id', (c) => {
   const id = c.req.param('id').toString();
   console.log(`Fetching reminder with id: ${id}`); 
@@ -105,30 +136,6 @@ app.post('/reminders/:id/unmark-completed', (c) => {
 });
 
 
-app.get('/reminders/completed', (c) => {
-  console.log('Fetching completed reminders'); 
-  const completed = reminders.filter((r) => r.isCompleted);
-  console.log('Completed reminders:', completed);
-  return completed.length ? c.json(completed) : c.json({ error: 'No completed reminders' }, 404);
-});
-
-
-app.get('/reminders/not-completed', (c) => {
-  console.log('Fetching not completed reminders'); 
-  const notCompleted = reminders.filter((r) => !r.isCompleted);
-  console.log('Not completed reminders:', notCompleted); 
-  return notCompleted.length ? c.json(notCompleted) : c.json({ error: 'No uncompleted reminders' }, 404);
-});
-
-
-app.get('/reminders/due-today', (c) => {
-  console.log('Fetching reminders due today'); 
-  const today = new Date().toISOString().split('T')[0];
-  console.log('Today:', today); 
-  const dueToday = reminders.filter((r) => r.dueDate.split('T')[0] === today);
-  console.log('Reminders due today:', dueToday); 
-  return dueToday.length ? c.json(dueToday) : c.json({ error: 'No reminders due today' }, 404);
-});
 
 
 
