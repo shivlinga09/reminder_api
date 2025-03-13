@@ -32,27 +32,36 @@ app.get('/reminders', (c) => {
 // Update a reminder
 app.patch('/reminders/:id', async (c) => {
   const id = c.req.param('id');
-  const index = reminders.findIndex(r => r.id === id);
-  if (index === -1) return c.json({ error: 'Reminder not found' }, 404);
-
-  try {
-    const body = await c.req.json();
-    reminders[index] = { ...reminders[index], ...body };
-    return c.json(reminders[index]);
-  } catch (error) {
-    return c.json({ error: 'Invalid request' }, 400);
+  const body = await c.req.json();
+  
+  const reminder = reminders.find((r) => r.id === id);
+  if (!reminder) {
+    return c.json({ error: 'Reminder not found' }, 404);
   }
+
+  // Update fields if provided
+  if (body.title) reminder.title = body.title;
+  if (body.description) reminder.description = body.description;
+  if (body.dueDate) reminder.dueDate = body.dueDate;
+  if (typeof body.isCompleted === 'boolean') reminder.isCompleted = body.isCompleted;
+
+  return c.json(reminder, 200);
 });
+
 
 // Delete a reminder
 app.delete('/reminders/:id', (c) => {
   const id = c.req.param('id');
-  const index = reminders.findIndex(r => r.id === id);
-  if (index === -1) return c.json({ error: 'Reminder not found' }, 404);
+  const index = reminders.findIndex((r) => r.id === id);
+
+  if (index === -1) {
+    return c.json({ error: 'Reminder not found' }, 404);
+  }
 
   reminders.splice(index, 1);
-  return c.json({ message: 'Reminder deleted' });
+  return c.json({ message: 'Reminder deleted' }, 200);
 });
+
 
 // Mark as completed
 app.post('/reminders/:id/mark-completed', (c) => {
@@ -94,3 +103,14 @@ app.get('/reminders/due-today', (c) => {
 });
 
 export default app;
+
+
+
+import { serve } from '@hono/node-server';
+
+serve({
+  fetch: app.fetch,
+  port: 3000,
+});
+
+console.log('Server is running on http://localhost:3000');
