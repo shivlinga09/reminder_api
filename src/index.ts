@@ -1,116 +1,140 @@
 import { Hono } from 'hono';
-import { Reminder, reminders } from './reminder.js';
+import { serve } from '@hono/node-server';
+import { Reminder, reminders } from './reminder'; 
+
 
 const app = new Hono();
 
-// Create a reminder
+
 app.post('/reminders', async (c) => {
   try {
-    const body: Reminder = await c.req.json();
+    const body = await c.req.json();
+    console.log('Creating reminder:', body); 
+
+  
     if (!body.id || !body.title || !body.dueDate || typeof body.isCompleted !== 'boolean') {
       return c.json({ error: 'Invalid input' }, 400);
     }
-    reminders.push(body);
-    return c.json(body, 201);
+
+   
+    const newReminder = new Reminder(body.id, body.title, body.dueDate, body.isCompleted);
+
+  
+    reminders.push(newReminder);
+    return c.json(newReminder, 201);
   } catch (error) {
+    console.error('Error creating reminder:', error);
     return c.json({ error: 'Invalid request' }, 400);
   }
 });
 
-// Get a reminder by ID
-app.get('/reminders/:id', (c) => {
-  const id = c.req.param('id');
-  const reminder = reminders.find(r => r.id === id);
-  return reminder ? c.json(reminder) : c.json({ error: 'Reminder not found' }, 404);
-});
 
-// Get all reminders
 app.get('/reminders', (c) => {
+  console.log('Fetching all reminders'); 
   return reminders.length ? c.json(reminders) : c.json({ error: 'No reminders found' }, 404);
 });
 
-// Update a reminder
-app.patch('/reminders/:id', async (c) => {
-  const id = c.req.param('id');
-  const body = await c.req.json();
-  
+
+app.get('/reminders/:id', (c) => {
+  const id = c.req.param('id').toString();
+  console.log(`Fetching reminder with id: ${id}`); 
+
   const reminder = reminders.find((r) => r.id === id);
-  if (!reminder) {
-    return c.json({ error: 'Reminder not found' }, 404);
-  }
-
-  // Update fields if provided
-  if (body.title) reminder.title = body.title;
-  if (body.description) reminder.description = body.description;
-  if (body.dueDate) reminder.dueDate = body.dueDate;
-  if (typeof body.isCompleted === 'boolean') reminder.isCompleted = body.isCompleted;
-
-  return c.json(reminder, 200);
+  return reminder ? c.json(reminder) : c.json({ error: 'Reminder not found' }, 404);
 });
 
 
-// Delete a reminder
-app.delete('/reminders/:id', (c) => {
-  const id = c.req.param('id');
-  const index = reminders.findIndex((r) => r.id === id);
+app.patch('/reminders/:id', async (c) => {
+  const id = c.req.param('id').toString();
+  console.log(`Updating reminder with id: ${id}`); 
 
-  if (index === -1) {
-    return c.json({ error: 'Reminder not found' }, 404);
+  const index = reminders.findIndex((r) => r.id === id);
+  if (index === -1) return c.json({ error: 'Reminder not found' }, 404);
+
+  try {
+    const body = await c.req.json();
+    console.log('Update payload:', body); 
+
+
+    const reminder = reminders[index];
+    if (body.title) reminder.title = body.title;
+    if (body.dueDate) reminder.dueDate = body.dueDate;
+    if (typeof body.isCompleted === 'boolean') reminder.isCompleted = body.isCompleted;
+
+    return c.json(reminder);
+  } catch (error) {
+    console.error('Error updating reminder:', error); 
+    return c.json({ error: 'Invalid request' }, 400);
   }
+});
+
+
+app.delete('/reminders/:id', (c) => {
+  const id = c.req.param('id').toString();
+  console.log(`Deleting reminder with id: ${id}`); 
+  const index = reminders.findIndex((r) => r.id === id);
+  if (index === -1) return c.json({ error: 'Reminder not found' }, 404);
+
 
   reminders.splice(index, 1);
-  return c.json({ message: 'Reminder deleted' }, 200);
+  return c.json({ message: 'Reminder deleted' });
 });
 
 
-// Mark as completed
 app.post('/reminders/:id/mark-completed', (c) => {
-  const id = c.req.param('id');
-  const reminder = reminders.find(r => r.id === id);
+  const id = c.req.param('id').toString();
+  console.log(`Marking reminder with id: ${id} as completed`);
+
+  const reminder = reminders.find((r) => r.id === id);
   if (!reminder) return c.json({ error: 'Reminder not found' }, 404);
 
   reminder.isCompleted = true;
   return c.json(reminder);
 });
 
-// Unmark as completed
+
 app.post('/reminders/:id/unmark-completed', (c) => {
-  const id = c.req.param('id');
-  const reminder = reminders.find(r => r.id === id);
+  const id = c.req.param('id').toString();
+  console.log(`Unmarking reminder with id: ${id} as completed`);
+
+  const reminder = reminders.find((r) => r.id === id);
   if (!reminder) return c.json({ error: 'Reminder not found' }, 404);
 
   reminder.isCompleted = false;
   return c.json(reminder);
 });
 
-// Get completed reminders
+
 app.get('/reminders/completed', (c) => {
-  const completed = reminders.filter(r => r.isCompleted);
+  console.log('Fetching completed reminders'); 
+  const completed = reminders.filter((r) => r.isCompleted);
+  console.log('Completed reminders:', completed);
   return completed.length ? c.json(completed) : c.json({ error: 'No completed reminders' }, 404);
 });
 
-// Get not completed reminders
+
 app.get('/reminders/not-completed', (c) => {
-  const notCompleted = reminders.filter(r => !r.isCompleted);
+  console.log('Fetching not completed reminders'); 
+  const notCompleted = reminders.filter((r) => !r.isCompleted);
+  console.log('Not completed reminders:', notCompleted); 
   return notCompleted.length ? c.json(notCompleted) : c.json({ error: 'No uncompleted reminders' }, 404);
 });
 
-// Get reminders due today
+
 app.get('/reminders/due-today', (c) => {
+  console.log('Fetching reminders due today'); 
   const today = new Date().toISOString().split('T')[0];
-  const dueToday = reminders.filter(r => r.dueDate.startsWith(today));
+  console.log('Today:', today); 
+  const dueToday = reminders.filter((r) => r.dueDate.split('T')[0] === today);
+  console.log('Reminders due today:', dueToday); 
   return dueToday.length ? c.json(dueToday) : c.json({ error: 'No reminders due today' }, 404);
 });
 
-export default app;
 
-
-
-import { serve } from '@hono/node-server';
 
 serve({
   fetch: app.fetch,
   port: 3000,
 });
 
-console.log('Server is running on http://localhost:3000');
+console.log(' Server running at http://localhost:3000');
